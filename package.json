@@ -1,0 +1,11 @@
+{
+  "name": "inlens",
+  "version": "1.0.0",
+  "private": true,
+  "description": "InLens: turn user interviews into themes, quotes and an email digest. Responsive web app plus Vercel AI functions.",
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "dev": "vercel dev"
+  },
+  "engines": { "node": ">=18" }
+}
