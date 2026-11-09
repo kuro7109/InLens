@@ -6,6 +6,8 @@ InLens turns user interviews into decisions. Upload a transcript, document or ca
 
 Built for startup PMs, UX researchers and founders who run their own interviews.
 
+**Live app:** https://inlensbyrohitkumawat-tan.vercel.app
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fkuro7109%2Finlens&project-name=inlens&repository-name=inlens&env=ANTHROPIC_API_KEY&envDescription=Anthropic%20API%20key%20for%20analysis%20and%20chat%20(stays%20on%20the%20server)&envLink=https%3A%2F%2Fconsole.anthropic.com%2Fsettings%2Fkeys)
 
 ## What's inside
