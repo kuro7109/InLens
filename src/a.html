@@ -143,7 +143,7 @@ a.card:not(.stack){display:block}
 .auth{min-height:100dvh;display:grid;grid-template-columns:1fr}
 .auth-brand{display:none}
 .auth-main{display:flex;flex-direction:column;padding:max(16px,env(safe-area-inset-top)) var(--gutter) max(16px,env(safe-area-inset-bottom));max-width:480px;width:100%;margin:0 auto;gap:16px}
-.brandmark{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:1.35rem;letter-spacing:-.02em}
+.brandmark{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:1.35rem;letter-spacing:-.02em;color:inherit;text-decoration:none;border-radius:10px;min-height:44px;width:max-content}
 .brandmark img{width:36px;height:36px;border-radius:10px}
 .wel-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
 .wel-hero .mascot{width:min(160px,40vw)}
@@ -196,7 +196,11 @@ a.card:not(.stack){display:block}
   .shell{display:grid;grid-template-columns:var(--side) 1fr;transition:grid-template-columns var(--t-med) var(--ease)}
   .shell.collapsed{--side:76px}
   .side{display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100dvh;padding:20px 14px;background:var(--surface);border-right:1px solid var(--line);overflow:hidden}
-  .side .brandmark{padding:4px 8px 14px;white-space:nowrap}
+  .side-head{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 0 14px 6px}
+  .side .brandmark{white-space:nowrap}
+  .shell.collapsed .side-head{flex-direction:column;gap:8px;padding:0 0 10px}
+  .side .me[aria-current="page"]{background:var(--accent-tint);color:var(--accent-ink)}
+  .shell.collapsed .side .me{justify-content:center;padding:8px 0}
   .side .nav{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;min-height:44px;padding:0 14px;border-radius:12px;color:var(--muted);text-decoration:none;font-weight:600;white-space:nowrap;transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
   .side .nav:hover{background:var(--surface-2);color:var(--ink)}
   .side .nav[aria-current="page"]{background:var(--accent-tint);color:var(--accent-ink)}
@@ -340,6 +344,7 @@ a.card:not(.stack){display:block}
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
     <symbol id="i-lang" viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c.5 3 2.5 5.5 5 7M11 5c-.5 3-3 6-6 8"/><path d="m13 21 4-9 4 9M14.5 18h5"/></symbol>
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>

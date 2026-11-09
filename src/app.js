@@ -15,7 +15,7 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const ago = ts => { const m = Math.round((Date.now() - ts) / 60000); if(m < 1) return 'just now'; if(m < 60) return m + ' min ago'; const h = Math.round(m / 60); if(h < 24) return h + 'h ago'; const d = Math.round(h / 24); return d === 1 ? 'yesterday' : d + ' days ago'; };
 const fmtMins = m => m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${m % 60 ? ' ' + (m % 60) + 'm' : ''}`;
 const LOGO = (inv) => `<svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><rect width="32" height="32" rx="9" fill="${inv ? '#fff' : 'var(--accent)'}"/><circle cx="14.5" cy="14.5" r="7" fill="none" stroke="${inv ? '#3560E8' : 'var(--on-accent)'}" stroke-width="2.6"/><path d="M19.6 19.6 25 25" stroke="${inv ? '#3560E8' : 'var(--on-accent)'}" stroke-width="2.6" stroke-linecap="round"/><path d="M14.5 10.6l1.05 2.85 2.85 1.05-2.85 1.05-1.05 2.85-1.05-2.85-2.85-1.05 2.85-1.05z" fill="${inv ? '#3560E8' : 'var(--on-accent)'}"/></svg>`;
-const brand = inv => `<div class="brandmark">${LOGO(inv)}<span class="txt">InLens</span></div>`;
+const brand = inv => `<a class="brandmark" href="#home" aria-label="InLens home">${LOGO(inv)}<span class="txt">InLens</span></a>`;
 
 const KEY = 'inlens-v1';
 let DB = null;
@@ -549,7 +549,7 @@ function saveObStep(){
 function finishOnboarding(){ const d = U(); d.onboarded = true; save(); buzz(16); go('home'); setTimeout(() => toast('You\'re set. Sample projects are ready to explore.'), 350); }
 
 /* ================= Shell ================= */
-const NAV = [['home','Home','home'],['projects','Projects','folder'],['ask','Ask InLens','chat'],['profile','Profile','user']];
+const NAV = [['home','Home','home'],['projects','Projects','folder'],['ask','Ask InLens','chat']];
 const SECTION = {home:'home', projects:'projects', project:'projects', interview:'projects', run:'projects', add:'add', ask:'ask', profile:'profile', styleguide:'profile'};
 let SOFT = false;
 function rerender(){ const y = window.scrollY; SOFT = true; render(); SOFT = false; window.scrollTo(0, y); }
@@ -557,10 +557,10 @@ function renderShell(r){
   const d = U(), name = d.profile.name || 'Guest';
   if(!$('.shell')){
     $('#app').innerHTML = `<div class="shell ${DB.collapsed ? 'collapsed' : ''}">
-      <nav class="side" aria-label="Main">${brand()}
+      <nav class="side" aria-label="Main"><div class="side-head">${brand()}<button class="icon-btn" data-act="collapse" aria-label="${DB.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}" title="${DB.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}" aria-expanded="${!DB.collapsed}">${icon('panel')}</button></div>
         <a class="btn btn-primary new" href="#add" aria-label="New interview">${icon('plus')}<span class="txt">New interview</span></a>
         ${NAV.map(([k, l, ic]) => `<a class="nav" href="#${k}" data-nav="${k}" title="${l}">${icon(ic)}<span class="txt">${l}</span></a>`).join('')}
-        <div class="foot"><div class="txt" data-ai-wrap>${statusHTML()}</div><a class="me" href="#profile"><span class="avatar" data-avatar></span><span class="txt sm" data-me></span></a><button class="nav" data-act="collapse" style="border:0;background:none;cursor:pointer" aria-label="Collapse sidebar">${icon('menu')}<span class="txt">Collapse</span></button></div>
+        <div class="foot"><a class="me" href="#profile" data-nav="profile" title="Profile" aria-label="Profile"><span class="avatar" data-avatar></span><span class="txt grow"><span class="sm" data-me style="display:block;font-weight:600"></span><span class="xs muted">Profile and settings</span></span></a></div>
       </nav>
       <div class="col"><header class="topbar" id="topbar"></header><main class="main" id="main" tabindex="-1"></main></div>
       <nav class="tabbar" aria-label="Tabs">
@@ -1010,7 +1010,7 @@ const ACT = {
   },
   'ob-next'(){ saveObStep(); const step = +route().args[0] || 1; if(step < 4) go('onboard/' + (step + 1)); else finishOnboarding(); },
   'ob-skip'(){ finishOnboarding(); },
-  collapse(){ DB.collapsed = !DB.collapsed; save(); $('.shell').classList.toggle('collapsed', DB.collapsed); },
+  collapse(el){ DB.collapsed = !DB.collapsed; save(); $('.shell').classList.toggle('collapsed', DB.collapsed); const l = DB.collapsed ? 'Expand sidebar' : 'Collapse sidebar'; el.setAttribute('aria-label', l); el.title = l; el.setAttribute('aria-expanded', !DB.collapsed); },
   'new-project'(){ newProjectSheet(id => go('project/' + id)); },
   'np-create'(el){
     const s = el.closest('.sheet'), name = $('#np-name', s).value.trim();

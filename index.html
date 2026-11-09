@@ -158,7 +158,7 @@ a.card:not(.stack){display:block}
 .auth{min-height:100dvh;display:grid;grid-template-columns:1fr}
 .auth-brand{display:none}
 .auth-main{display:flex;flex-direction:column;padding:max(16px,env(safe-area-inset-top)) var(--gutter) max(16px,env(safe-area-inset-bottom));max-width:480px;width:100%;margin:0 auto;gap:16px}
-.brandmark{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:1.35rem;letter-spacing:-.02em}
+.brandmark{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:1.35rem;letter-spacing:-.02em;color:inherit;text-decoration:none;border-radius:10px;min-height:44px;width:max-content}
 .brandmark img{width:36px;height:36px;border-radius:10px}
 .wel-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
 .wel-hero .mascot{width:min(160px,40vw)}
@@ -211,7 +211,11 @@ a.card:not(.stack){display:block}
   .shell{display:grid;grid-template-columns:var(--side) 1fr;transition:grid-template-columns var(--t-med) var(--ease)}
   .shell.collapsed{--side:76px}
   .side{display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100dvh;padding:20px 14px;background:var(--surface);border-right:1px solid var(--line);overflow:hidden}
-  .side .brandmark{padding:4px 8px 14px;white-space:nowrap}
+  .side-head{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 0 14px 6px}
+  .side .brandmark{white-space:nowrap}
+  .shell.collapsed .side-head{flex-direction:column;gap:8px;padding:0 0 10px}
+  .side .me[aria-current="page"]{background:var(--accent-tint);color:var(--accent-ink)}
+  .shell.collapsed .side .me{justify-content:center;padding:8px 0}
   .side .nav{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;min-height:44px;padding:0 14px;border-radius:12px;color:var(--muted);text-decoration:none;font-weight:600;white-space:nowrap;transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
   .side .nav:hover{background:var(--surface-2);color:var(--ink)}
   .side .nav[aria-current="page"]{background:var(--accent-tint);color:var(--accent-ink)}
@@ -355,6 +359,7 @@ a.card:not(.stack){display:block}
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
     <symbol id="i-lang" viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c.5 3 2.5 5.5 5 7M11 5c-.5 3-3 6-6 8"/><path d="m13 21 4-9 4 9M14.5 18h5"/></symbol>
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
@@ -728,7 +733,7 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const ago = ts => { const m = Math.round((Date.now() - ts) / 60000); if(m < 1) return 'just now'; if(m < 60) return m + ' min ago'; const h = Math.round(m / 60); if(h < 24) return h + 'h ago'; const d = Math.round(h / 24); return d === 1 ? 'yesterday' : d + ' days ago'; };
 const fmtMins = m => m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${m % 60 ? ' ' + (m % 60) + 'm' : ''}`;
 const LOGO = (inv) => `<svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><rect width="32" height="32" rx="9" fill="${inv ? '#fff' : 'var(--accent)'}"/><circle cx="14.5" cy="14.5" r="7" fill="none" stroke="${inv ? '#3560E8' : 'var(--on-accent)'}" stroke-width="2.6"/><path d="M19.6 19.6 25 25" stroke="${inv ? '#3560E8' : 'var(--on-accent)'}" stroke-width="2.6" stroke-linecap="round"/><path d="M14.5 10.6l1.05 2.85 2.85 1.05-2.85 1.05-1.05 2.85-1.05-2.85-2.85-1.05 2.85-1.05z" fill="${inv ? '#3560E8' : 'var(--on-accent)'}"/></svg>`;
-const brand = inv => `<div class="brandmark">${LOGO(inv)}<span class="txt">InLens</span></div>`;
+const brand = inv => `<a class="brandmark" href="#home" aria-label="InLens home">${LOGO(inv)}<span class="txt">InLens</span></a>`;
 
 const KEY = 'inlens-v1';
 let DB = null;
@@ -1262,7 +1267,7 @@ function saveObStep(){
 function finishOnboarding(){ const d = U(); d.onboarded = true; save(); buzz(16); go('home'); setTimeout(() => toast('You\'re set. Sample projects are ready to explore.'), 350); }
 
 /* ================= Shell ================= */
-const NAV = [['home','Home','home'],['projects','Projects','folder'],['ask','Ask InLens','chat'],['profile','Profile','user']];
+const NAV = [['home','Home','home'],['projects','Projects','folder'],['ask','Ask InLens','chat']];
 const SECTION = {home:'home', projects:'projects', project:'projects', interview:'projects', run:'projects', add:'add', ask:'ask', profile:'profile', styleguide:'profile'};
 let SOFT = false;
 function rerender(){ const y = window.scrollY; SOFT = true; render(); SOFT = false; window.scrollTo(0, y); }
@@ -1270,10 +1275,10 @@ function renderShell(r){
   const d = U(), name = d.profile.name || 'Guest';
   if(!$('.shell')){
     $('#app').innerHTML = `<div class="shell ${DB.collapsed ? 'collapsed' : ''}">
-      <nav class="side" aria-label="Main">${brand()}
+      <nav class="side" aria-label="Main"><div class="side-head">${brand()}<button class="icon-btn" data-act="collapse" aria-label="${DB.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}" title="${DB.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}" aria-expanded="${!DB.collapsed}">${icon('panel')}</button></div>
         <a class="btn btn-primary new" href="#add" aria-label="New interview">${icon('plus')}<span class="txt">New interview</span></a>
         ${NAV.map(([k, l, ic]) => `<a class="nav" href="#${k}" data-nav="${k}" title="${l}">${icon(ic)}<span class="txt">${l}</span></a>`).join('')}
-        <div class="foot"><div class="txt" data-ai-wrap>${statusHTML()}</div><a class="me" href="#profile"><span class="avatar" data-avatar></span><span class="txt sm" data-me></span></a><button class="nav" data-act="collapse" style="border:0;background:none;cursor:pointer" aria-label="Collapse sidebar">${icon('menu')}<span class="txt">Collapse</span></button></div>
+        <div class="foot"><a class="me" href="#profile" data-nav="profile" title="Profile" aria-label="Profile"><span class="avatar" data-avatar></span><span class="txt grow"><span class="sm" data-me style="display:block;font-weight:600"></span><span class="xs muted">Profile and settings</span></span></a></div>
       </nav>
       <div class="col"><header class="topbar" id="topbar"></header><main class="main" id="main" tabindex="-1"></main></div>
       <nav class="tabbar" aria-label="Tabs">
@@ -1723,7 +1728,7 @@ const ACT = {
   },
   'ob-next'(){ saveObStep(); const step = +route().args[0] || 1; if(step < 4) go('onboard/' + (step + 1)); else finishOnboarding(); },
   'ob-skip'(){ finishOnboarding(); },
-  collapse(){ DB.collapsed = !DB.collapsed; save(); $('.shell').classList.toggle('collapsed', DB.collapsed); },
+  collapse(el){ DB.collapsed = !DB.collapsed; save(); $('.shell').classList.toggle('collapsed', DB.collapsed); const l = DB.collapsed ? 'Expand sidebar' : 'Collapse sidebar'; el.setAttribute('aria-label', l); el.title = l; el.setAttribute('aria-expanded', !DB.collapsed); },
   'new-project'(){ newProjectSheet(id => go('project/' + id)); },
   'np-create'(el){
     const s = el.closest('.sheet'), name = $('#np-name', s).value.trim();
