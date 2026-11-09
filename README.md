@@ -32,6 +32,7 @@ Built for startup PMs, UX researchers and founders who run their own interviews.
 - **Requests, search and digest:** feature requests ranked by how many participants asked; search across every project; an email digest you can open in your mail app or copy.
 - **Ask InLens:** chat about a project's themes and quotes. It never reveals participant details.
 - **Private by default:** phone numbers, emails, card, Aadhaar-style and PAN numbers become `[REDACTED]` before anything reaches the AI. Data stays in the browser; export or delete it any time.
+- **Sample data to explore:** four projects come pre-loaded. *Flatmate finder* has 5 interviews (2 in Hinglish), 6 themes, 8 request groups and a starter chat; *Bill payments* is a fintech drop-off study with 3 interviews; *Study planner* is an EdTech sign-up usability test with 2 sessions; *Q1 churn calls* is empty and ready for real interviews. Three more try-it transcripts sit on the Add interview screen. Every participant is fictional, and every sample quote is checked against its transcript (`scripts/check-data.js`).
 - **Works offline too:** without an AI key, a built-in analyser drafts the insights and the status pill says so.
 - **Feel:** light and dark themes, haptics on every tap (8 ms primary, 4 ms secondary, 16 ms success), ripple from the touch point, pressable buttons, page and list motion, and no motion under reduced-motion settings.
 

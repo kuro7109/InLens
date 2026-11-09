@@ -332,16 +332,30 @@ async function clusterProject(pr, {fresh = false} = {}){
   pr.updated = Date.now();
   return {mode, note, added:pr.themes.length - before};
 }
+const SEED_V = 2;
 function seedUser(d){
   d.projects = d.projects || {}; d.interviews = d.interviews || {}; d.chats = d.chats || {};
-  if(d.seeded) return;
-  d.seeded = true;
-  for(const s of SAMPLE_INTERVIEWS){
-    const red = redact(s.text);
-    d.interviews[s.id] = {id:s.id, projectId:'pr_demo', participant:s.participant, title:s.title, lang:s.lang, date:s.date, source:'sample', text:red.text, redactions:red.n, redactKinds:red.kinds, mode:'sample', status:'done', created:Date.parse(s.date), analysis:enrich(normalizeAnalysis(clone(s.analysis)), red.text)};
+  if((d.seedV || 0) >= SEED_V) return;
+  const day = 864e5, now = Date.now();
+  for(const sp of SAMPLE_PROJECTS){
+    for(const s of sp.interviews){
+      if(d.interviews[s.id]) continue;
+      const red = redact(s.text);
+      d.interviews[s.id] = {id:s.id, projectId:sp.id, participant:s.participant, title:s.title, lang:s.lang, date:s.date, source:'sample', text:red.text, redactions:red.n, redactKinds:red.kinds, mode:'sample', status:'done', created:Date.parse(s.date + 'T10:00:00'), analysis:enrich(normalizeAnalysis(clone(s.analysis)), red.text)};
+    }
+    const ids = sp.interviews.map(s => s.id);
+    const fresh = {id:sp.id, sample:true, name:sp.name, goal:sp.goal, tldr:sp.tldr, created:now - sp.daysAgo.created * day, updated:now - sp.daysAgo.updated * day, interviewIds:ids,
+      themes:sp.themes.map(t => ({id:uid('th'), verified:false, ...clone(t)})), requests:sp.requests.map(r => ({id:uid('rq'), ...clone(r)}))};
+    const ex = d.projects[sp.id];
+    if(ex){
+      const extra = ex.interviewIds.filter(id => !ids.includes(id) && d.interviews[id]);
+      Object.assign(ex, {sample:true, goal:ex.goal || fresh.goal, tldr:fresh.tldr, themes:fresh.themes, requests:fresh.requests, interviewIds:[...ids, ...extra]});
+      if(extra.length){ assignOffline(ex, 'pp'); assignOffline(ex, 'fr'); }
+    } else if(!d.seedV) d.projects[sp.id] = fresh;
   }
-  const p = clone(SAMPLE_PROJECT);
-  d.projects.pr_demo = {...p, interviewIds:SAMPLE_INTERVIEWS.map(s => s.id), created:Date.now() - 864e5 * 12, updated:Date.now() - 864e5 * 2, themes:p.themes.map(t => ({id:uid('th'), verified:false, ...t})), requests:p.requests.map(r => ({id:uid('rq'), ...r}))};
+  for(const [pid, turns] of Object.entries(SAMPLE_CHATS)) if(d.projects[pid] && !(d.chats[pid] || []).length) d.chats[pid] = clone(turns);
+  d.seedV = SEED_V;
+  save();
 }
 const projectsSorted = () => Object.values(U().projects).sort((a, b) => b.updated - a.updated);
 function nextPid(pr){ const used = new Set(pr.interviewIds.map(i => U().interviews[i] && U().interviews[i].participant)); let n = pr.interviewIds.length + 1; while(used.has('P' + n)) n++; return 'P' + n; }
@@ -532,7 +546,7 @@ function saveObStep(){
   else { const em = $('#ob-email').value.trim(); if(em) p.digestEmail = em; const f = $('[data-seg="freq"] [aria-pressed="true"]'); if(f) p.digestFreq = f.dataset.v; const t = $('[data-key="redact"]'); p.redact = t.getAttribute('aria-checked') === 'true'; }
   save();
 }
-function finishOnboarding(){ const d = U(); d.onboarded = true; save(); buzz(16); go('home'); setTimeout(() => toast('You\'re set. A sample project is ready to explore.'), 350); }
+function finishOnboarding(){ const d = U(); d.onboarded = true; save(); buzz(16); go('home'); setTimeout(() => toast('You\'re set. Sample projects are ready to explore.'), 350); }
 
 /* ================= Shell ================= */
 const NAV = [['home','Home','home'],['projects','Projects','folder'],['ask','Ask InLens','chat'],['profile','Profile','user']];
@@ -596,7 +610,7 @@ home(){
   const ranked = top ? top.themes.map(t => ({t, k:themeStats(top, t).k})).sort((a, b) => b.k - a.k).slice(0, 3) : [];
   const line = top ? `${plural(doneIvs(top).length, 'interview')} in "${top.name}" ${doneIvs(top).length === 1 ? 'is' : 'are'} ready to review.` : 'Add your first interview to see themes appear.';
   return {title:'Home', html:`<div class="stack lg">
-    <section class="card hello"><img class="mascot idle" src="${MASCOT.wave}" alt="InLens mascot waving"><div class="stack" style="gap:8px"><h2>Hi${first ? ', ' + esc(first) : ''}</h2><p class="muted sm">${esc(line)}</p><div class="row wrap"><a class="btn btn-primary sm" href="#add">${icon('plus', 'sm')}Add interview</a>${top ? `<a class="btn btn-text" href="#project/${top.id}/email">Email digest</a>` : ''}</div></div></section>
+    <section class="card hello"><img class="mascot idle" src="${MASCOT.wave}" alt="InLens mascot waving"><div class="stack" style="gap:8px"><h2>Hi${first ? ', ' + esc(first) : ' there'}</h2><p class="muted sm">${esc(line)}</p><div class="row wrap"><a class="btn btn-primary sm" href="#add">${icon('plus', 'sm')}Add interview</a>${top ? `<a class="btn btn-text" href="#project/${top.id}/email">Email digest</a>` : ''}</div></div></section>
     <div class="stats stagger">
       <div class="stat" style="--i:0"><div class="n" data-count="${done.length}">0</div><div class="l">Interviews analysed</div></div>
       <div class="stat" style="--i:1"><div class="n" data-count="${themes}">0</div><div class="l">Themes found</div></div>
@@ -984,7 +998,7 @@ const ACT = {
   close(){ closeSheet(); },
   pw(el){ const i = el.parentElement.querySelector('input'); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; el.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); },
   forgot(){ sheet(`<h2>Forgot your password?</h2><p class="muted sm">InLens accounts in this prototype live only in this browser, so there's no reset email. You can create a new account, or explore with sample data.</p><div class="row wrap"><a class="btn btn-primary" href="#signup">Create account</a><button class="btn btn-ghost" data-act="close">Close</button></div>`, 'Forgot password'); },
-  guest(){ DB.session = 'guest'; if(!DB.data.guest) DB.data.guest = newUser('', ''); save(); buzz(16); go('onboard/1'); },
+  guest(){ DB.session = 'guest'; if(!DB.data.guest){ const g = DB.data.guest = newUser('', ''); Object.assign(g.profile, {role:['Product manager'], goals:['Discovery interviews','Usability tests'], langs:['English','Hinglish'], digestEmail:'product-team@example.com'}); } save(); buzz(16); go('onboard/1'); },
   toggle(el){ const on = el.getAttribute('aria-checked') !== 'true'; el.setAttribute('aria-checked', on); if(el.dataset.persist){ U().profile[el.dataset.key] = on; save(); toast(on ? 'Personal details will be hidden' : 'Personal details will be kept'); } },
   own(el){
     const k = el.dataset.q, inp = $(`[data-own="${k}"]`), v = inp.value.trim().slice(0, 40); if(!v) { inp.focus(); return; }
@@ -1012,7 +1026,7 @@ const ACT = {
   },
   'rename-project'(el){ const pr = U().projects[el.dataset.id]; textSheet('Edit project', [{label:'Project name', value:pr.name, max:60}, {label:'What do you want to learn?', value:pr.goal || '', max:120}], ([n, g]) => { pr.name = n; pr.goal = g; }); },
   'delete-project'(el){ const pr = U().projects[el.dataset.id]; confirmSheet('Delete this project?', `"${pr.name}" and its ${plural(pr.interviewIds.length, 'interview')} will be removed from this browser.`, 'Delete project', () => { pr.interviewIds.forEach(id => delete U().interviews[id]); delete U().chats[pr.id]; delete U().projects[pr.id]; save(); toast('Project deleted'); go('projects'); }); },
-  try(el){ const s = TRY_SAMPLES.find(x => x.key === el.dataset.key); const ta = $('#a-text'); ta.value = s.text; ta.dispatchEvent(new Event('input')); if(!$('#a-title').value) $('#a-title').value = s.title; $$('[data-seg="lang"] button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === s.lang)); celebrate(el); },
+  try(el){ const s = TRY_SAMPLES.find(x => x.key === el.dataset.key); const ta = $('#a-text'); const target = {hinglish:'pr_demo', fintech:'pr_bills', usability:'pr_edu'}[s.key]; if(target && U().projects[target]) $('#a-project').value = target; $('#a-title').value = ''; ta.value = s.text; ta.dispatchEvent(new Event('input')); if(!$('#a-title').value) $('#a-title').value = s.title; $$('[data-seg="lang"] button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === s.lang)); celebrate(el); },
   jump(el){ if(el.dataset.local){ const t = $('#L' + el.dataset.line); if(t){ const g = $('.iv-grid'); if(g){ g.dataset.show = 'transcript'; $$('[data-pane]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pane === 'transcript')); } t.scrollIntoView({block:'center', behavior:'smooth'}); t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); return; } } go(`interview/${el.dataset.iid}/L${el.dataset.line}`); },
   verify(el){ const t = U().projects[el.dataset.pr].themes.find(x => x.id === el.dataset.id); t.verified = !t.verified; save(); rerender(); if(t.verified){ buzz(16); toast('Theme verified. It now leads the digest.'); } },
   'edit-theme'(el){ const t = U().projects[el.dataset.pr].themes.find(x => x.id === el.dataset.id); textSheet('Edit theme', [{label:'Theme title', value:t.title, max:80}, {label:'Summary', value:t.summary, long:true, max:300}], ([a, b]) => { t.title = a; t.summary = b; t.edited = true; }); },
