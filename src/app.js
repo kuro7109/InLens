@@ -20,13 +20,15 @@ const brand = inv => `<a class="brandmark" href="#home" aria-label="InLens home"
 const KEY = 'inlens-v1';
 let DB = null;
 try { DB = JSON.parse(localStorage.getItem(KEY)); } catch(_){}
-if(!DB || typeof DB !== 'object' || !DB.data) DB = {accounts:{}, session:null, theme:'auto', collapsed:false, data:{}};
+if(!DB || typeof DB !== 'object' || !DB.data) DB = {accounts:{}, session:null, theme:'dark', collapsed:false, data:{}};
+if(!DB.themeChosen) DB.theme = 'dark';
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(_){} }
 const U = () => DB.data[DB.session];
 function newUser(name, email){ return {profile:{name, email, role:[], goals:[], langs:[], digestEmail:email || '', digestFreq:'each', redact:true}, onboarded:false, projects:{}, interviews:{}, chats:{}}; }
 
 function applyTheme(){ const r = document.documentElement; if(DB.theme === 'light' || DB.theme === 'dark') r.dataset.theme = DB.theme; else delete r.dataset.theme; }
 applyTheme();
+new MutationObserver(() => { const want = DB.theme === 'light' || DB.theme === 'dark' ? DB.theme : null; if(want && document.documentElement.dataset.theme !== want) applyTheme(); }).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
 
 /* ================= Haptics, ripple, feedback ================= */
 const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch(_){} };
@@ -607,24 +609,35 @@ home(){
   const themes = prs.reduce((n, p) => n + p.themes.length, 0);
   const quotes = done.reduce((n, i) => n + [...i.analysis.pain_points, ...i.analysis.feature_requests].reduce((m, p) => m + p.quotes.filter(q => q.verified).length, 0), 0);
   const top = prs.find(p => p.themes.length);
-  const ranked = top ? top.themes.map(t => ({t, k:themeStats(top, t).k})).sort((a, b) => b.k - a.k).slice(0, 3) : [];
+  const ranked = top ? top.themes.map(t => ({t, s:themeStats(top, t)})).sort((a, b) => (b.t.verified - a.t.verified) || b.s.k - a.s.k || b.s.members.length - a.s.members.length).slice(0, 4) : [];
+  const reqs = top ? top.requests.map(r => ({r, pids:[...new Set(r.members.map(itemOf).filter(Boolean).map(m => m.pid))]})).sort((a, b) => b.pids.length - a.pids.length).slice(0, 5) : [];
+  const n = top ? Math.max(1, doneIvs(top).length) : 1;
   const line = top ? `${plural(doneIvs(top).length, 'interview')} in "${top.name}" ${doneIvs(top).length === 1 ? 'is' : 'are'} ready to review.` : 'Add your first interview to see themes appear.';
-  return {title:'Home', html:`<div class="stack lg">
-    <section class="card hello"><img class="mascot idle" src="${MASCOT.wave}" alt="InLens mascot waving"><div class="stack" style="gap:8px"><h2>Hi${first ? ', ' + esc(first) : ' there'}</h2><p class="muted sm">${esc(line)}</p><div class="row wrap"><a class="btn btn-primary sm" href="#add">${icon('plus', 'sm')}Add interview</a>${top ? `<a class="btn btn-text" href="#project/${top.id}/email">Email digest</a>` : ''}</div></div></section>
-    <div class="stats stagger">
-      <div class="stat" style="--i:0"><div class="n" data-count="${done.length}">0</div><div class="l">Interviews analysed</div></div>
-      <div class="stat" style="--i:1"><div class="n" data-count="${themes}">0</div><div class="l">Themes found</div></div>
-      <div class="stat" style="--i:2"><div class="n" data-count="${quotes}">0</div><div class="l">Quotes linked to lines</div></div>
-      <div class="stat" style="--i:3"><div class="n" data-count="${done.length * 45}" data-fmt="time">0</div><div class="l">Time saved (est.)<button class="tip right" data-tip="${esc(statTip)}" aria-label="${esc(statTip)}">${icon('info', 'sm')}</button></div></div>
-    </div>
-    <div class="grid two">
-      <section class="stack"><div class="sec-h"><h3>${top ? 'Top themes · ' + esc(top.name) : 'Top themes'}</h3>${top ? `<a class="btn btn-text" href="#project/${top.id}">Open</a>` : ''}</div>
-        ${ranked.length ? `<div class="stack stagger">${ranked.map((x, i) => `<div style="--i:${i}">${themeMini(top, x.t)}</div>`).join('')}</div>` : `<div class="card"><p class="muted sm">Themes appear here after your first interview.</p></div>`}
-      </section>
-      <section class="stack"><div class="sec-h"><h3>Recent interviews</h3><a class="btn btn-text" href="#projects">All projects</a></div>
-        ${ivs.length ? `<div class="list">${ivs.slice(0, 5).map(ivRow).join('')}</div>` : `<div class="card"><p class="muted sm">Nothing yet. Paste a transcript or upload a file to start.</p></div>`}
-      </section>
-    </div></div>`};
+  const qOf = s => { const m = s.members.find(m => m.quotes.some(q => q.verified)); return m ? `“${m.quotes.find(q => q.verified).text}” (${m.pid})` : ''; };
+  return {title:'Home', html:`<div class="dash">
+    <section class="card hero-dash span12">
+      <div class="hd-left"><img class="mascot idle" src="${MASCOT.wave}" alt="InLens mascot waving"><div class="stack" style="gap:6px;min-width:0"><h2>Hi${first ? ', ' + esc(first) : ' there'}</h2><p class="muted sm">${esc(line)}</p><div class="row wrap" style="margin-top:4px"><a class="btn btn-primary sm" href="#add">${icon('plus', 'sm')}Add interview</a>${top ? `<a class="btn btn-secondary sm" href="#ask/${top.id}">${icon('chat', 'sm')}Ask InLens</a>` : ''}</div></div></div>
+      <div class="hd-stats stagger">
+        <div class="stat" style="--i:0"><div class="n" data-count="${done.length}">0</div><div class="l">Interviews</div></div>
+        <div class="stat" style="--i:1"><div class="n" data-count="${themes}">0</div><div class="l">Themes</div></div>
+        <div class="stat" style="--i:2"><div class="n" data-count="${quotes}">0</div><div class="l">Quotes linked</div></div>
+        <div class="stat" style="--i:3"><div class="n" data-count="${done.length * 45}" data-fmt="time">0</div><div class="l">Saved (est.)<button class="tip right" data-tip="${esc(statTip)}" aria-label="${esc(statTip)}">${icon('info', 'sm')}</button></div></div>
+      </div>
+    </section>
+    <section class="card span7 dcard"><div class="sec-h"><div><h3>Top themes</h3>${top ? `<p class="xs muted">${esc(top.name)}</p>` : ''}</div>${top ? `<a class="btn btn-text" href="#project/${top.id}/themes">Open</a>` : ''}</div>
+      ${ranked.length ? `<div class="stagger">${ranked.map(({t, s}, i) => `<a class="trow" href="#project/${top.id}/themes" style="--i:${i}"><span class="row between" style="gap:8px"><strong class="sm">${esc(t.title)}</strong><span class="row" style="gap:4px">${t.verified ? `<span class="badge verified">${icon('check', 'sm')}Verified</span>` : ''}<span class="badge ${s.conf}">${cap(s.conf)}</span></span></span><span class="row"><span class="bar grow"><i style="--w:${Math.round(s.k / n * 100)}%"></i></span><span class="xs muted">${s.k} of ${n}</span></span>${qOf(s) ? `<span class="q">${esc(qOf(s))}</span>` : ''}</a>`).join('')}</div>` : `<p class="muted sm">Themes appear here after your first interview.</p>`}
+    </section>
+    <section class="card span5 dcard"><div class="sec-h"><div><h3>Most requested</h3>${top ? `<p class="xs muted">What participants asked for</p>` : ''}</div>${top ? `<a class="btn btn-text" href="#project/${top.id}/requests">All</a>` : ''}</div>
+      ${reqs.length ? `<div class="stagger">${reqs.map(({r, pids}, i) => `<a class="trow" href="#project/${top.id}/requests" style="--i:${i}"><span class="row between" style="gap:8px"><strong class="sm">${esc(r.title)}</strong><span class="xs muted">${pids.join(', ')}</span></span><span class="bar"><i style="--w:${Math.round(pids.length / n * 100)}%"></i></span></a>`).join('')}</div>` : `<p class="muted sm">Requests show up when participants say what they wish existed.</p>`}
+      ${top ? `<a class="btn btn-secondary sm block" href="#ask/${top.id}" style="margin-top:auto">${icon('spark', 'sm')}Ask what to build first</a>` : ''}
+    </section>
+    <section class="card span7 dcard"><div class="sec-h"><h3>Recent interviews</h3><a class="btn btn-text" href="#projects">All projects</a></div>
+      ${ivs.length ? `<div class="list flat">${ivs.slice(0, 5).map(ivRow).join('')}</div>` : `<p class="muted sm">Nothing yet. Paste a transcript or upload a file to start.</p>`}
+    </section>
+    <section class="card span5 dcard"><div class="sec-h"><h3>Your projects</h3><button class="btn btn-text" data-act="new-project">New</button></div>
+      <div class="list flat">${prs.slice(0, 5).map(p => `<a class="li" href="#project/${p.id}"><span class="ico">${icon('folder')}</span><span class="grow"><span class="t">${esc(p.name)}</span><br><span class="s">${plural(doneIvs(p).length, 'interview')} · ${plural(p.themes.length, 'theme')} · ${ago(p.updated)}</span></span>${icon('right', 'sm')}</a>`).join('')}</div>
+    </section>
+  </div>`};
 },
 projects(r){
   const q = r.args[0] || '';
@@ -786,7 +799,7 @@ profile(){
       <div class="set-row"><span class="grow sm">Your projects are stored in this browser only.</span><button class="btn btn-secondary sm" data-act="export">${icon('download', 'sm')}Export</button></div>
       <div class="set-row"><span class="grow sm">Delete every project, interview and chat.</span><button class="btn btn-danger sm" data-act="delete-all">${icon('trash', 'sm')}Delete</button></div></section>
     <section class="card"><h3 style="font-family:var(--font-display)">Appearance and AI</h3>
-      <div class="set-row"><span class="grow label">Theme</span><div class="seg" role="group" aria-label="Theme" data-seg="theme">${[['auto','Auto'],['light','Light'],['dark','Dark']].map(([v, l]) => `<button type="button" aria-pressed="${(DB.theme || 'auto') === v}" data-v="${v}">${l}</button>`).join('')}</div></div>
+      <div class="set-row"><span class="grow label">Theme</span><div class="seg" role="group" aria-label="Theme" data-seg="theme">${[['auto','Auto'],['light','Light'],['dark','Dark']].map(([v, l]) => `<button type="button" aria-pressed="${(DB.theme || 'dark') === v}" data-v="${v}">${l}</button>`).join('')}</div></div>
       <div class="set-row"><span class="grow sm">${AI.live ? 'Analysis, theme grouping and chat use Claude. Transcripts are redacted first.' : 'No AI connection here, so InLens uses its built-in analyser. Results are drafts you can edit.'}</span>${statusHTML()}</div>
       <a class="set-row" href="#styleguide" style="text-decoration:none;color:inherit"><span class="grow sm">Design system and build notes</span>${icon('right', 'sm')}</a></section>
     <button class="btn btn-secondary block" data-act="logout">${icon('logout', 'sm')}${guest ? 'Leave guest mode' : 'Log out'}</button>
@@ -1062,7 +1075,7 @@ document.addEventListener('click', e => {
   if(chip){ const box = chip.parentElement, on = chip.getAttribute('aria-pressed') !== 'true'; if(box.dataset.multi !== 'true') $$('.chip', box).forEach(c => c.setAttribute('aria-pressed', 'false')); chip.setAttribute('aria-pressed', on); return; }
   const sb = e.target.closest('.seg[data-seg] button');
   if(sb){ const seg = sb.parentElement; $$('button', seg).forEach(b => b.setAttribute('aria-pressed', b === sb)); const kind = seg.dataset.seg;
-    if(kind === 'theme'){ DB.theme = sb.dataset.v; save(); applyTheme(); }
+    if(kind === 'theme'){ DB.theme = sb.dataset.v; DB.themeChosen = true; save(); applyTheme(); }
     else if(seg.dataset.save){ U().profile[seg.dataset.save] = sb.dataset.v; save(); toast('Saved'); } }
 });
 document.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.matches('[data-own]')){ e.preventDefault(); ACT.own($(`[data-act="own"][data-q="${e.target.dataset.own}"]`)); } });
